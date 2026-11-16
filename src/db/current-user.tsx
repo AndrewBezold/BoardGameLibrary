@@ -4,12 +4,11 @@ import { createContext, Fragment, use, useState, type ReactNode } from 'react';
 import { db } from './client';
 import { ensureDeviceUser } from './device-user';
 import { useLiveRows } from './live-query';
-import { wipeDatabase } from './reset';
 import { people, type Person } from './schema';
 
 type CurrentUserContextValue = {
   user: Person;
-  resetDatabase: () => void;
+  reloadDeviceUser: () => void;
 };
 
 const CurrentUserContext = createContext<CurrentUserContextValue | null>(null);
@@ -26,14 +25,13 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   );
   const user = live?.id === deviceUser.id ? live : deviceUser;
 
-  function resetDatabase() {
-    wipeDatabase();
+  function reloadDeviceUser() {
     setDeviceUser(ensureDeviceUser());
   }
 
   return (
-    <CurrentUserContext value={{ user, resetDatabase }}>
-      {/* Remount everything after a reset so no screen holds stale ids. */}
+    <CurrentUserContext value={{ user, reloadDeviceUser }}>
+      {/* Remount everything when the device user changes so no screen holds stale ids. */}
       <Fragment key={deviceUser.id}>{children}</Fragment>
     </CurrentUserContext>
   );
@@ -50,7 +48,11 @@ export function useCurrentUser(): Person {
   return useCurrentUserContext().user;
 }
 
-/** Dev only: wipes all data and recreates the device user as on first launch. */
-export function useResetDatabase() {
-  return useCurrentUserContext().resetDatabase;
+/**
+ * Looks up the device user again (creating one if the database no longer has
+ * it) and remounts the app if it changed. Call after replacing the database's
+ * contents, e.g. from the developer tools.
+ */
+export function useReloadDeviceUser() {
+  return useCurrentUserContext().reloadDeviceUser;
 }

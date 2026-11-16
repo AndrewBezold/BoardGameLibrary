@@ -34,9 +34,10 @@ function editableColumns(game: EditableGame): EditableGame {
   return { name, minPlayers, maxPlayers, playTimeMinutes };
 }
 
-export function addGame(game: EditableGame, ownerIds: string[]) {
+/** Adds a game with its owners and returns its id. */
+export function addGame(game: EditableGame, ownerIds: string[]): string {
   const values = editableColumns(game);
-  db.transaction((tx) => {
+  return db.transaction((tx) => {
     assertNameFree(tx, 'game', values.name);
     const owners = existingOwnerIds(tx, ownerIds);
     const { id } = tx
@@ -47,6 +48,7 @@ export function addGame(game: EditableGame, ownerIds: string[]) {
     tx.insert(personGames)
       .values(owners.map((personId) => ({ personId, gameId: id })))
       .run();
+    return id;
   });
 }
 
