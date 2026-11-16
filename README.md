@@ -6,7 +6,7 @@ One person runs it on their phone and keeps the list for everyone. The other peo
 
 ## What it does right now
 
-You add a game, pick who owns it, and it goes on the list. If two people own Catan, that's still one entry with two owners. Tap a game to rename it, change its owners or delete it.
+You add a game, pick who owns it, and it goes on the list. If two people own Catan, that's still one entry with two owners. You can also fill in how many players it takes and how long it runs, or leave those blank. Only the name is required. Tap a game to change any of that or delete it.
 
 People get added as you go: while picking owners, type a new name and they're in. Everyone is also listed in Settings → People. Tap a name there to change it, add someone new, or delete someone. If they were the only owner of a game, that game goes too, and the app tells you how many before you confirm.
 
@@ -22,7 +22,6 @@ All of this lives on your phone. There's no account, no network access, and noth
 
 These are planned for v1:
 
-- Player count and play time on each game
 - A picker: tell it how many of you there are and how long you've got, and it shows what fits and who can bring it
 - Voting on games to play
 - A play log with date, players and winners, plus when each game was last played

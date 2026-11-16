@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AddGameForm } from '@/components/add-game-form';
+import { GameForm } from '@/components/game-form';
 import { GameRow } from '@/components/game-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useGamesWithOwners } from '@/db/games';
+import { addGame, useGamesWithOwners } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function HomeScreen() {
@@ -55,7 +55,19 @@ export default function HomeScreen() {
           keyExtractor={(item) => item.id}
           extraData={editingId}
           keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={adding ? <AddGameForm onDone={() => setAdding(false)} /> : undefined}
+          ListHeaderComponent={
+            adding ? (
+              <GameForm
+                submitLabel="Add"
+                onSubmit={(game, ownerIds) => {
+                  addGame(game, ownerIds);
+                  setAdding(false);
+                }}
+                onCancel={() => setAdding(false)}
+                style={styles.addForm}
+              />
+            ) : undefined
+          }
           renderItem={({ item }) => (
             <GameRow
               game={item}
@@ -103,5 +115,8 @@ const styles = StyleSheet.create({
   },
   list: {
     alignSelf: 'stretch',
+  },
+  addForm: {
+    marginBottom: Spacing.two,
   },
 });
