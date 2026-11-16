@@ -1,9 +1,6 @@
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { Alert } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
-
-export const DANGER = '#d93025';
+import { Button } from '@/components/button';
 
 type Props = {
   label: string;
@@ -30,24 +27,5 @@ export function ConfirmButton({ label, title, message, confirmText = label, onCo
     );
   }
 
-  return (
-    <Pressable
-      onPress={handlePress}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}>
-      <ThemedText type="smallBold" style={{ color: DANGER }}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
+  return <Button label={label} variant="danger" onPress={handlePress} />;
 }
-
-const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    borderColor: DANGER,
-  },
-});

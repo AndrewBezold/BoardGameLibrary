@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GameForm } from '@/components/game-form';
-import { GameRow } from '@/components/game-row';
+import { GameForm } from '@/components/games/game-form';
+import { GameRow } from '@/components/games/game-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';

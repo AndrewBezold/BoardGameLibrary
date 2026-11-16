@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { DANGER } from '@/components/confirm-button';
-import { OwnerPicker } from '@/components/owner-picker';
+import { Button } from '@/components/button';
+import { ErrorText } from '@/components/error-text';
+import { OwnerPicker } from '@/components/games/owner-picker';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useCurrentUser } from '@/db/current-user';
 import { toUserMessage } from '@/db/errors';
-import { gameDetailsProblem, type EditableGame } from '@/db/games';
+import type { EditableGame } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
+import { gameDetailsProblem } from '@/lib/games';
 
 type DetailKey = Exclude<keyof EditableGame, 'name'>;
 
@@ -130,51 +132,14 @@ export function GameForm({
         ))}
       </View>
 
-      {(detailsProblem ?? error) && (
-        <ThemedText type="small" style={styles.danger}>
-          {detailsProblem ?? error}
-        </ThemedText>
-      )}
+      <ErrorText>{detailsProblem ?? error}</ErrorText>
 
       <View style={styles.actions}>
-        {onDelete && (
-          // No confirmation: the caller offers Undo instead.
-          <Pressable
-            onPress={handleDelete}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.button,
-              { borderWidth: 1, borderColor: DANGER },
-              pressed && { opacity: 0.7 },
-            ]}>
-            <ThemedText type="smallBold" style={styles.danger}>
-              Delete
-            </ThemedText>
-          </Pressable>
-        )}
+        {/* No confirmation: the caller offers Undo instead. */}
+        {onDelete && <Button label="Delete" variant="danger" onPress={handleDelete} />}
         <View style={styles.spacer} />
-        <Pressable
-          onPress={onCancel}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.button,
-            { borderWidth: 1, borderColor: theme.backgroundSelected },
-            pressed && { opacity: 0.7 },
-          ]}>
-          <ThemedText type="smallBold">Cancel</ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={handleSubmit}
-          disabled={!canSubmit}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: theme.text, opacity: !canSubmit ? 0.4 : pressed ? 0.7 : 1 },
-          ]}>
-          <ThemedText type="smallBold" style={{ color: theme.background }}>
-            {submitLabel}
-          </ThemedText>
-        </Pressable>
+        <Button label="Cancel" onPress={onCancel} />
+        <Button label={submitLabel} variant="primary" onPress={handleSubmit} disabled={!canSubmit} />
       </View>
     </View>
   );
@@ -208,13 +173,5 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
-  },
-  button: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
-  },
-  danger: {
-    color: DANGER,
   },
 });

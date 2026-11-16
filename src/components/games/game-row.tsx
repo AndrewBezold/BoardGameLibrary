@@ -2,19 +2,15 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { GameForm } from '@/components/game-form';
+import { GameForm } from '@/components/games/game-form';
 import { ThemedText } from '@/components/themed-text';
 import { useUndo } from '@/components/undo-snackbar';
 import { Spacing } from '@/constants/theme';
 import { useCurrentUser } from '@/db/current-user';
-import {
-  deleteGame,
-  formatGameDetails,
-  getGameOwnerIds,
-  updateGame,
-  type GameWithOwners,
-} from '@/db/games';
+import { deleteGame, getGameOwnerIds, updateGame, type GameWithOwners } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
+import { formatGameDetails } from '@/lib/games';
+import { meFirst, personLabel } from '@/lib/people';
 
 type Props = {
   game: GameWithOwners;
@@ -28,10 +24,8 @@ export function GameRow({ game, editing, onStartEdit, onDone }: Props) {
   const me = useCurrentUser();
   const theme = useTheme();
   if (!editing) {
-    // Device user first, labelled like the owner picker.
-    const owners = [...game.owners]
-      .sort((a, b) => Number(b.id === me.id) - Number(a.id === me.id))
-      .map((o) => (o.id === me.id ? `${o.name} (me)` : o.name))
+    const owners = meFirst(game.owners, me.id)
+      .map((owner) => personLabel(owner, me.id))
       .join(', ');
     const details = formatGameDetails(game);
     return (

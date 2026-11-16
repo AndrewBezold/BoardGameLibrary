@@ -1,12 +1,13 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
+import { gameDetailsProblem } from '@/lib/games';
 import { db } from './client';
 import { UserError } from './errors';
 import { newId } from './ids';
 import { live, now } from './live';
 import { useLiveRows } from './live-query';
-import { findByName } from './names';
 import { games, personGames, people, type Game } from './schema';
+import { assertNameFree } from './unique-names';
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -22,35 +23,8 @@ function existingOwnerIds(tx: Tx, ownerIds: string[]): string[] {
   return ids;
 }
 
-function assertTitleFree(tx: Tx, name: string, exceptId?: string) {
-  const all = tx.select({ id: games.id, name: games.name }).from(games).where(live(games)).all();
-  const existing = findByName(all, name, exceptId);
-  if (existing) throw new UserError(`There's already a game called ${existing.name}.`);
-}
-
 /** The parts of a game the user edits. Optional details are null when unknown. */
 export type EditableGame = Pick<Game, 'name' | 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'>;
-
-/** Why a game's details can't be saved, or null if they're fine. */
-export function gameDetailsProblem(
-  game: Pick<Game, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'>
-): string | null {
-  const fields: [number | null, string][] = [
-    [game.minPlayers, 'Min players'],
-    [game.maxPlayers, 'Max players'],
-    [game.playTimeMinutes, 'Play time'],
-  ];
-  for (const [value, label] of fields) {
-    if (value !== null && (!Number.isSafeInteger(value) || value < 1)) {
-      return `${label} must be a whole number above zero.`;
-    }
-  }
-  const { minPlayers, maxPlayers } = game;
-  if (minPlayers !== null && maxPlayers !== null && maxPlayers < minPlayers) {
-    return "Max players can't be less than min players.";
-  }
-  return null;
-}
 
 /** Copies only the editable columns, so extra fields on `game` never reach the table. */
 function editableColumns(game: EditableGame): EditableGame {
@@ -63,7 +37,7 @@ function editableColumns(game: EditableGame): EditableGame {
 export function addGame(game: EditableGame, ownerIds: string[]) {
   const values = editableColumns(game);
   db.transaction((tx) => {
-    assertTitleFree(tx, values.name);
+    assertNameFree(tx, 'game', values.name);
     const owners = existingOwnerIds(tx, ownerIds);
     const { id } = tx
       .insert(games)
@@ -80,25 +54,6 @@ export type GameWithOwners = EditableGame & {
   id: string;
   owners: { id: string; name: string }[];
 };
-
-/** Short summary for lists, e.g. "2–4 players · 45 min". Empty if nothing is known. */
-export function formatGameDetails({ minPlayers, maxPlayers, playTimeMinutes }: EditableGame): string {
-  const parts: string[] = [];
-  const players = (n: number) => (n === 1 ? 'player' : 'players');
-  if (minPlayers !== null && maxPlayers !== null) {
-    parts.push(
-      minPlayers === maxPlayers
-        ? `${minPlayers} ${players(minPlayers)}`
-        : `${minPlayers}–${maxPlayers} players`
-    );
-  } else if (minPlayers !== null) {
-    parts.push(`${minPlayers}+ players`);
-  } else if (maxPlayers !== null) {
-    parts.push(`Up to ${maxPlayers} ${players(maxPlayers)}`);
-  }
-  if (playTimeMinutes !== null) parts.push(`${playTimeMinutes} min`);
-  return parts.join(' · ');
-}
 
 /** Every game in the group's catalog with its owners, sorted by name. Live. */
 export function useGamesWithOwners(): GameWithOwners[] {
@@ -163,7 +118,7 @@ export function updateGame(gameId: string, game: EditableGame, ownerIds: string[
       .where(and(eq(games.id, gameId), live(games)))
       .get();
     if (!exists) throw new UserError('This game was deleted.');
-    assertTitleFree(tx, values.name, gameId);
+    assertNameFree(tx, 'game', values.name, gameId);
     const owners = existingOwnerIds(tx, ownerIds);
     tx.update(games).set(values).where(eq(games.id, gameId)).run();
 
@@ -215,7 +170,7 @@ export function restoreGames(tx: Tx, gameIds: string[], time: string) {
     .all();
   if (deleted.length === 0) return;
   for (const game of deleted) {
-    assertTitleFree(tx, game.name, game.id);
+    assertNameFree(tx, 'game', game.name, game.id);
     if (liveOwnerIds(tx, game.id).length === 0) {
       throw new UserError(`${game.name} has no owners left. Restore one of them first.`);
     }

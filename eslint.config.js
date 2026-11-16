@@ -26,4 +26,22 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    // src/lib/ is plain logic: no UI, no database, so it can be unit tested on its own.
+    files: ['src/lib/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['react', 'react-native', 'react-native-*', 'expo', 'expo-*', '@/db/*', '**/db/*', '@/components/*', '@/hooks/*'],
+              allowTypeImports: true,
+              message: 'src/lib/ must stay free of React, Expo and the database. Type-only imports are fine.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

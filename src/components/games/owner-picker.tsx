@@ -1,12 +1,14 @@
-import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+import { NameField } from '@/components/editable-name';
+import { ErrorText } from '@/components/error-text';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useCurrentUser } from '@/db/current-user';
-import { toUserMessage } from '@/db/errors';
-import { addPerson, findPersonByName, usePeople } from '@/db/people';
+import { findOrAddPerson, usePeople } from '@/db/people';
 import { useTheme } from '@/hooks/use-theme';
+import { meFirst, personLabel } from '@/lib/people';
 
 type Props = {
   value: string[];
@@ -17,45 +19,19 @@ type Props = {
 export function OwnerPicker({ value, onChange }: Props) {
   const theme = useTheme();
   const me = useCurrentUser();
-  const allPeople = usePeople();
+  const people = meFirst(usePeople(), me.id);
 
-  const [newPerson, setNewPerson] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const committedRef = useRef(false);
-
-  // Device user first, everyone else alphabetically.
-  const people = [...allPeople].sort((a, b) => Number(b.id === me.id) - Number(a.id === me.id));
 
   function toggleOwner(id: string) {
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   }
 
-  function startAddPerson() {
-    committedRef.current = false;
-    setNewPerson('');
-  }
-
-  // Return-key submit is followed by a blur, and both call this before React
-  // re-renders, so guard against committing the same entry twice.
-  function handleAddPerson() {
-    if (committedRef.current) return;
-    committedRef.current = true;
-
-    const personName = newPerson?.trim();
-    if (!personName) {
-      setNewPerson(null);
-      return;
-    }
-    try {
-      // Typing someone who already exists selects them rather than erroring.
-      const person = findPersonByName(personName) ?? addPerson(personName);
-      if (!value.includes(person.id)) onChange([...value, person.id]);
-      setNewPerson(null);
-      setError(null);
-    } catch (e) {
-      committedRef.current = false;
-      setError(toUserMessage(e, 'Could not add person'));
-    }
+  function addOwner(name: string) {
+    // Typing someone who already exists selects them rather than erroring.
+    const person = findOrAddPerson(name);
+    if (!value.includes(person.id)) onChange([...value, person.id]);
   }
 
   return (
@@ -76,35 +52,37 @@ export function OwnerPicker({ value, onChange }: Props) {
                   : { borderColor: theme.backgroundSelected },
               ]}>
               <ThemedText type="small" style={selected && { color: theme.background }}>
-                {person.id === me.id ? `${person.name} (me)` : person.name}
+                {personLabel(person, me.id)}
               </ThemedText>
             </Pressable>
           );
         })}
-        {newPerson === null ? (
+        {adding ? (
+          <NameField
+            initial=""
+            placeholder="Name"
+            accessibilityLabel="New person's name"
+            failureText="Could not add person"
+            save={addOwner}
+            onClose={(message) => {
+              setAdding(false);
+              setError(message);
+            }}
+            style={styles.personField}
+            inputStyle={styles.personInput}
+          />
+        ) : (
           <Pressable
-            onPress={startAddPerson}
+            onPress={() => {
+              setError(null);
+              setAdding(true);
+            }}
             accessibilityRole="button"
             style={[styles.chip, { borderColor: theme.backgroundSelected }]}>
             <ThemedText type="small" themeColor="textSecondary">
               + Person
             </ThemedText>
           </Pressable>
-        ) : (
-          <TextInput
-            autoFocus
-            value={newPerson}
-            onChangeText={setNewPerson}
-            placeholder="Name"
-            placeholderTextColor={theme.textSecondary}
-            returnKeyType="done"
-            onSubmitEditing={handleAddPerson}
-            onBlur={handleAddPerson}
-            style={[
-              styles.personInput,
-              { color: theme.text, backgroundColor: theme.backgroundElement },
-            ]}
-          />
         )}
       </View>
 
@@ -113,11 +91,7 @@ export function OwnerPicker({ value, onChange }: Props) {
           Pick at least one owner.
         </ThemedText>
       )}
-      {error && (
-        <ThemedText type="small" style={styles.error}>
-          {error}
-        </ThemedText>
-      )}
+      <ErrorText>{error}</ErrorText>
     </View>
   );
 }
@@ -137,14 +111,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.one,
   },
-  personInput: {
+  // Chip-sized instead of NameField's full-width default.
+  personField: {
+    flex: 0,
     minWidth: 140,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.two,
-    fontSize: 14,
   },
-  error: {
-    color: '#d93025',
+  personInput: {
+    minHeight: 0,
+    paddingVertical: Spacing.one,
+    fontSize: 14,
   },
 });
