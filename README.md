@@ -22,6 +22,7 @@ All of this lives on your phone. There's no account, no network access, and noth
 
 These are planned for v1:
 
+- Looking up games on BoardGameGeek while adding them, and importing your BGG collection. This will be the only thing the app sends anywhere: your searches and BGG username, to BGG
 - A picker: tell it how many of you there are and how long you've got, and it shows what fits and who can bring it
 - Voting on games to play
 - A play log with date, players and winners, plus when each game was last played
