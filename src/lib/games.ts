@@ -1,6 +1,8 @@
 // Type-only import: erased at build time, so this module never loads the database.
 import type { EditableGame } from '@/db/games';
 
+import { isPositiveCount } from './numbers';
+
 type GameDetails = Pick<EditableGame, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'>;
 
 /** Why a game's details can't be saved, or null if they're fine. Null details are unknown. */
@@ -11,7 +13,7 @@ export function gameDetailsProblem(game: GameDetails): string | null {
     [game.playTimeMinutes, 'Play time'],
   ];
   for (const [value, label] of fields) {
-    if (value !== null && (!Number.isSafeInteger(value) || value < 1)) {
+    if (value !== null && !isPositiveCount(value)) {
       return `${label} must be a whole number above zero.`;
     }
   }

@@ -10,6 +10,8 @@ You add a game, pick who owns it, and it goes on the list. If two people own Cat
 
 People get added as you go: while picking owners, type a new name and they're in. Everyone is also listed in Settings → People. Tap a name there to change it, add someone new, or delete someone. If they were the only owner of a game, that game goes too, and the app tells you how many before you confirm.
 
+On the Pick tab, enter how many of you are playing and how many minutes you've got, and it lists the games that fit and who owns them. Leave either one blank if it doesn't matter. Games missing the player counts or play time it needs are left out for now.
+
 Nothing is gone for good when you delete it. An Undo button shows up for a few seconds, and anything you missed is in Settings → Recently deleted.
 
 It won't let you add the same game or person twice, and it ignores capitals and extra spaces when checking.
@@ -23,7 +25,7 @@ All of this lives on your phone. There's no account, no network access, and noth
 These are planned for v1:
 
 - Looking up games on BoardGameGeek while adding them, and importing your BGG collection. This will be the only thing the app sends anywhere: your searches and BGG username, to BGG
-- A picker: tell it how many of you there are and how long you've got, and it shows what fits and who can bring it
+- More for the picker: showing games with missing details separately instead of leaving them out, picking who's coming tonight, and letting the app choose at random
 - Voting on games to play
 - A play log with date, players and winners, plus when each game was last played
 - Search and sort for the game list

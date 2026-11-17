@@ -1,16 +1,13 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { GameForm } from '@/components/games/game-form';
-import { ThemedText } from '@/components/themed-text';
+import { GameSummary } from '@/components/games/game-summary';
 import { useUndo } from '@/components/undo-snackbar';
 import { Spacing } from '@/constants/theme';
-import { useCurrentUser } from '@/db/current-user';
 import { deleteGame, getGameOwnerIds, updateGame, type GameWithOwners } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
-import { formatGameDetails } from '@/lib/games';
-import { meFirst, personLabel } from '@/lib/people';
 
 type Props = {
   game: GameWithOwners;
@@ -21,32 +18,15 @@ type Props = {
 
 /** A game in the list, with its details and owners. Tap (the pencil marks it) to edit it in place. */
 export function GameRow({ game, editing, onStartEdit, onDone }: Props) {
-  const me = useCurrentUser();
   const theme = useTheme();
   if (!editing) {
-    const owners = meFirst(game.owners, me.id)
-      .map((owner) => personLabel(owner, me.id))
-      .join(', ');
-    const details = formatGameDetails(game);
     return (
       <Pressable
         onPress={onStartEdit}
         accessibilityRole="button"
         accessibilityHint="Edit this game"
         style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}>
-        <View style={styles.itemText}>
-          <ThemedText>{game.name}</ThemedText>
-          {details.length > 0 && (
-            <ThemedText type="small" themeColor="textSecondary">
-              {details}
-            </ThemedText>
-          )}
-          {owners.length > 0 && (
-            <ThemedText type="small" themeColor="textSecondary">
-              {owners}
-            </ThemedText>
-          )}
-        </View>
+        <GameSummary game={game} />
         <SymbolView
           name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
           size={18}
@@ -92,10 +72,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     paddingVertical: Spacing.two,
-  },
-  itemText: {
-    flex: 1,
-    gap: Spacing.half,
   },
   editor: {
     marginVertical: Spacing.one,

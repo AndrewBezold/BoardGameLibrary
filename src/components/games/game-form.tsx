@@ -11,6 +11,7 @@ import { toUserMessage } from '@/db/errors';
 import type { EditableGame } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
 import { gameDetailsProblem } from '@/lib/games';
+import { parseCount } from '@/lib/numbers';
 
 type DetailKey = Exclude<keyof EditableGame, 'name'>;
 
@@ -21,13 +22,6 @@ const DETAIL_FIELDS: { key: DetailKey; label: string; a11yLabel: string }[] = [
 ];
 
 const toText = (n: number | null | undefined) => (n == null ? '' : String(n));
-
-/** Blank is unknown (null). Anything other than digits becomes NaN, which fails validation. */
-function parseNumber(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed === '') return null;
-  return /^\d+$/.test(trimmed) ? Number(trimmed) : NaN;
-}
 
 type Props = {
   /** The game being edited. Omit to add a new one. */
@@ -68,9 +62,9 @@ export function GameForm({
 
   const values: EditableGame = {
     name: name.trim(),
-    minPlayers: parseNumber(detailsText.minPlayers),
-    maxPlayers: parseNumber(detailsText.maxPlayers),
-    playTimeMinutes: parseNumber(detailsText.playTimeMinutes),
+    minPlayers: parseCount(detailsText.minPlayers),
+    maxPlayers: parseCount(detailsText.maxPlayers),
+    playTimeMinutes: parseCount(detailsText.playTimeMinutes),
   };
   const detailsProblem = gameDetailsProblem(values);
   const canSubmit = values.name.length > 0 && ownerIds.length > 0 && !detailsProblem;
