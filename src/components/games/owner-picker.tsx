@@ -3,12 +3,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { NameField } from '@/components/editable-name';
 import { ErrorText } from '@/components/error-text';
+import { chipStyle, PersonChips } from '@/components/person-chips';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { useCurrentUser } from '@/db/current-user';
-import { findOrAddPerson, usePeople } from '@/db/people';
+import { findOrAddPerson } from '@/db/people';
 import { useTheme } from '@/hooks/use-theme';
-import { meFirst, personLabel } from '@/lib/people';
 
 type Props = {
   value: string[];
@@ -18,15 +17,8 @@ type Props = {
 /** Chip list for choosing which people own a game, with inline "add person". */
 export function OwnerPicker({ value, onChange }: Props) {
   const theme = useTheme();
-  const me = useCurrentUser();
-  const people = meFirst(usePeople(), me.id);
-
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function toggleOwner(id: string) {
-    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
-  }
 
   function addOwner(name: string) {
     // Typing someone who already exists selects them rather than erroring.
@@ -36,27 +28,7 @@ export function OwnerPicker({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.chips}>
-        {people.map((person) => {
-          const selected = value.includes(person.id);
-          return (
-            <Pressable
-              key={person.id}
-              onPress={() => toggleOwner(person.id)}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected }}
-              style={[
-                styles.chip,
-                selected
-                  ? { backgroundColor: theme.text, borderColor: theme.text }
-                  : { borderColor: theme.backgroundSelected },
-              ]}>
-              <ThemedText type="small" style={selected && { color: theme.background }}>
-                {personLabel(person, me.id)}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+      <PersonChips value={value} onChange={onChange}>
         {adding ? (
           <NameField
             initial=""
@@ -78,13 +50,13 @@ export function OwnerPicker({ value, onChange }: Props) {
               setAdding(true);
             }}
             accessibilityRole="button"
-            style={[styles.chip, { borderColor: theme.backgroundSelected }]}>
+            style={[chipStyle, { borderColor: theme.backgroundSelected }]}>
             <ThemedText type="small" themeColor="textSecondary">
               + Person
             </ThemedText>
           </Pressable>
         )}
-      </View>
+      </PersonChips>
 
       {value.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">
@@ -99,17 +71,6 @@ export function OwnerPicker({ value, onChange }: Props) {
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.two,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
   },
   // Chip-sized instead of NameField's full-width default.
   personField: {

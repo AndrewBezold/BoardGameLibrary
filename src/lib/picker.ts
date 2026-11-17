@@ -1,12 +1,16 @@
 // Type-only import: erased at build time, so this module never loads the database.
 import type { EditableGame } from '@/db/games';
 
-type GameDetails = Pick<EditableGame, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'>;
+type PickerGame = Pick<EditableGame, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'> & {
+  owners: readonly { id: string }[];
+};
 
 /** What the picker is asked for. Null means that filter isn't set. */
 export type PickerFilter = {
   players: number | null;
   maxMinutes: number | null;
+  /** Only games at least one of these people owns (tonight's people). */
+  ownedByAnyOf: ReadonlySet<string> | null;
 };
 
 /**
@@ -16,7 +20,9 @@ export type PickerFilter = {
  */
 export type Fit = 'fits' | 'unknown' | 'no';
 
-export function gameFit(game: GameDetails, { players, maxMinutes }: PickerFilter): Fit {
+export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }: PickerFilter): Fit {
+  if (ownedByAnyOf && !game.owners.some((owner) => ownedByAnyOf.has(owner.id))) return 'no';
+
   let unknown = false;
 
   if (players !== null) {
