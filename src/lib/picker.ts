@@ -42,6 +42,20 @@ export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }:
 }
 
 /**
+ * A random item, avoiding `previousId` when there's anything else to choose,
+ * so "pick again" always gives a different game. Null if `items` is empty.
+ */
+export function pickRandom<T extends { id: string }>(
+  items: readonly T[],
+  previousId: string | null = null,
+  random: () => number = Math.random
+): T | null {
+  const choices = items.length > 1 ? items.filter((item) => item.id !== previousId) : items;
+  if (choices.length === 0) return null;
+  return choices[Math.floor(random() * choices.length)];
+}
+
+/**
  * The details a game is missing for the filters that are set, e.g.
  * ["min players", "play time"]. Explains why a game's fit is `unknown`.
  */

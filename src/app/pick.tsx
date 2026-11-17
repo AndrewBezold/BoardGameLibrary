@@ -14,7 +14,7 @@ import { usePeople } from '@/db/people';
 import { useTheme } from '@/hooks/use-theme';
 import { plural } from '@/lib/format';
 import { isPositiveCount, parseCount } from '@/lib/numbers';
-import { gameFit, missingDetails, type PickerFilter } from '@/lib/picker';
+import { gameFit, missingDetails, pickRandom, type PickerFilter } from '@/lib/picker';
 
 /** A typed filter value: the number to filter by (null if blank or invalid), and whether it's invalid. */
 function filterValue(text: string): { value: number | null; invalid: boolean } {
@@ -31,6 +31,7 @@ export default function PickScreen() {
   const [onlyTheirGames, setOnlyTheirGames] = useState(true);
   const [playersText, setPlayersText] = useState('');
   const [minutesText, setMinutesText] = useState('');
+  const [pickedId, setPickedId] = useState<string | null>(null);
 
   // Drop anyone deleted since they were picked.
   const hereIds = selected.filter((id) => people.some((person) => person.id === id));
@@ -62,6 +63,13 @@ export default function PickScreen() {
     { key: 'fits', data: fits },
     { key: 'unknown', data: unknown },
   ].filter((section) => section.data.length > 0);
+
+  // The random pick, while it still fits (changing the filters can rule it out).
+  const picked = fits.find((game) => game.id === pickedId) ?? null;
+
+  function pickOne() {
+    setPickedId(pickRandom(fits, picked?.id ?? null)?.id ?? null);
+  }
 
   let countText = '';
   if (fits.length > 0) countText = `${plural(fits.length, 'game')} ${fits.length === 1 ? 'fits' : 'fit'}`;
@@ -127,9 +135,12 @@ export default function PickScreen() {
       </ErrorText>
 
       {countText.length > 0 && (
-        <ThemedText type="small" themeColor="textSecondary">
-          {countText}
-        </ThemedText>
+        <View style={styles.countRow}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.countText}>
+            {countText}
+          </ThemedText>
+          {fits.length > 0 && <Button label="Pick one" variant="primary" onPress={pickOne} />}
+        </View>
       )}
     </View>
   );
@@ -138,6 +149,18 @@ export default function PickScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedText type="subtitle">Pick a game</ThemedText>
+        {picked && (
+          <View style={[styles.pickedCard, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {"Tonight's pick"}
+            </ThemedText>
+            <GameSummary game={picked} here={here} />
+            <View style={styles.pickedActions}>
+              <Button label="Done" onPress={() => setPickedId(null)} />
+              {fits.length > 1 && <Button label="Pick again" variant="primary" onPress={pickOne} />}
+            </View>
+          </View>
+        )}
         <SectionList
           style={styles.list}
           sections={sections}
@@ -230,6 +253,24 @@ const styles = StyleSheet.create({
   },
   item: {
     paddingVertical: Spacing.two,
+  },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  countText: {
+    flex: 1,
+  },
+  pickedCard: {
+    gap: Spacing.two,
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+  },
+  pickedActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.two,
   },
   sectionHeader: {
     gap: Spacing.half,
