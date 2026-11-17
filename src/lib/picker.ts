@@ -40,3 +40,17 @@ export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }:
 
   return unknown ? 'unknown' : 'fits';
 }
+
+/**
+ * The details a game is missing for the filters that are set, e.g.
+ * ["min players", "play time"]. Explains why a game's fit is `unknown`.
+ */
+export function missingDetails(game: PickerGame, { players, maxMinutes }: PickerFilter): string[] {
+  const missing: string[] = [];
+  if (players !== null) {
+    if (game.minPlayers === null) missing.push('min players');
+    if (game.maxPlayers === null) missing.push('max players');
+  }
+  if (maxMinutes !== null && game.playTimeMinutes === null) missing.push('play time');
+  return missing;
+}
