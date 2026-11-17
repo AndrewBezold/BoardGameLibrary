@@ -1,37 +1,37 @@
 import { and, eq } from 'drizzle-orm';
-import * as Device from 'expo-device';
 
 import { db } from './client';
+import { UserError } from './errors';
 import { newId } from './ids';
 import { live } from './live';
 import { appMeta, people, type Person } from './schema';
+import { assertNameFree } from './unique-names';
 
 const DEVICE_USER_KEY = 'device_user_id';
 
-function defaultName() {
-  return Device.deviceName ?? Device.modelName ?? 'Me';
+/** The user who owns this phone, or null before they've entered their name on first launch. */
+export function getDeviceUser(): Person | null {
+  const meta = db.select().from(appMeta).where(eq(appMeta.key, DEVICE_USER_KEY)).get();
+  if (!meta) return null;
+  return (
+    db
+      .select()
+      .from(people)
+      .where(and(eq(people.id, meta.value), live(people)))
+      .get() ?? null
+  );
 }
 
-/**
- * Returns the user who owns this phone, creating them on first launch.
- * Idempotent: the id is stored in app_meta, so later launches reuse it.
- */
-export function ensureDeviceUser(): Person {
+/** Creates the user who owns this phone. Throws a UserError for a blank or taken name. */
+export function createDeviceUser(name: string): Person {
+  const trimmed = name.trim();
+  if (!trimmed) throw new UserError('Enter your name.');
   return db.transaction((tx) => {
-    const meta = tx.select().from(appMeta).where(eq(appMeta.key, DEVICE_USER_KEY)).get();
-    if (meta) {
-      const existing = tx
-        .select()
-        .from(people)
-        .where(and(eq(people.id, meta.value), live(people)))
-        .get();
-      if (existing) return existing;
-    }
-
-    const user = tx.insert(people).values({ id: newId(), name: defaultName() }).returning().get();
+    assertNameFree(tx, 'person', trimmed);
+    const user = tx.insert(people).values({ id: newId(), name: trimmed }).returning().get();
     tx.insert(appMeta)
-      .values({ key: DEVICE_USER_KEY, value: String(user.id) })
-      .onConflictDoUpdate({ target: appMeta.key, set: { value: String(user.id) } })
+      .values({ key: DEVICE_USER_KEY, value: user.id })
+      .onConflictDoUpdate({ target: appMeta.key, set: { value: user.id } })
       .run();
     return user;
   });

@@ -1,6 +1,6 @@
 import { db } from './client';
-import { useReloadDeviceUser } from './current-user';
-import { ensureDeviceUser } from './device-user';
+import { useCurrentUser, useReloadDeviceUser } from './current-user';
+import { createDeviceUser } from './device-user';
 import { seedFixture } from './fixture';
 import { appMeta, games, people, personGames, playPlayers, plays } from './schema';
 
@@ -18,17 +18,18 @@ function wipeDatabase() {
 
 /** Dev only: actions for the Developer section of Settings. */
 export function useDevTools() {
+  const me = useCurrentUser();
   const reloadDeviceUser = useReloadDeviceUser();
   return {
-    /** Wipes all data and starts over as on first launch. */
+    /** Wipes all data and starts over as on first launch, asking for a name. */
     resetDatabase() {
       wipeDatabase();
       reloadDeviceUser();
     },
-    /** Wipes all data, then fills it with the sample data in fixture.ts. */
+    /** Wipes all data, then fills it with the sample data in fixture.ts. Keeps your name. */
     loadSampleData() {
       wipeDatabase();
-      seedFixture(ensureDeviceUser().id);
+      seedFixture(createDeviceUser(me.name).id);
       reloadDeviceUser();
     },
   };

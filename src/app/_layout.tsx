@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 
 import AppTabs from '@/components/app-tabs';
+import { FirstRun } from '@/components/first-run';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UndoProvider } from '@/components/undo-snackbar';
@@ -36,7 +37,7 @@ export default function TabLayout() {
     );
   } else if (success) {
     content = (
-      <CurrentUserProvider>
+      <CurrentUserProvider firstRun={(save) => <FirstRun save={save} />}>
         <UndoProvider>
           <AppTabs />
         </UndoProvider>

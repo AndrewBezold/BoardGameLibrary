@@ -14,7 +14,7 @@ Nothing is gone for good when you delete it. An Undo button shows up for a few s
 
 It won't let you add the same game or person twice, and it ignores capitals and extra spaces when checking.
 
-You start out named after your phone. Change that in Settings → People.
+The first time you open the app, it asks for your name. Change it later in Settings → People.
 
 All of this lives on your phone. There's no account, no network access, and nothing gets sent anywhere.
 
@@ -26,7 +26,6 @@ These are planned for v1:
 - A picker: tell it how many of you there are and how long you've got, and it shows what fits and who can bring it
 - Voting on games to play
 - A play log with date, players and winners, plus when each game was last played
-- Asking for your name the first time you open the app
 - Search and sort for the game list
 - A self-hosted sync backend, to enable voting and library sharing
 
