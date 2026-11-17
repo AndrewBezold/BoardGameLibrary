@@ -42,6 +42,19 @@ export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }:
 }
 
 /**
+ * Never-played games first, then the longest since last played. Ties keep
+ * their order (name). `lastPlayedOn` gives a game's `YYYY-MM-DD`, or null if never played.
+ */
+export function neglectedFirst<T extends { id: string }>(
+  games: readonly T[],
+  lastPlayedOn: (id: string) => string | null
+): T[] {
+  const rank = (game: T) => lastPlayedOn(game.id) ?? '';
+  // '' sorts before any date, and YYYY-MM-DD strings sort by date.
+  return [...games].sort((a, b) => (rank(a) < rank(b) ? -1 : rank(a) > rank(b) ? 1 : 0));
+}
+
+/**
  * A random item, avoiding `previousId` when there's anything else to choose,
  * so "pick again" always gives a different game. Null if `items` is empty.
  */

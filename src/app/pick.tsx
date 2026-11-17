@@ -11,10 +11,11 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useGamesWithOwners, type GameWithOwners } from '@/db/games';
 import { usePeople } from '@/db/people';
+import { usePlayStats } from '@/db/plays';
 import { useTheme } from '@/hooks/use-theme';
-import { plural } from '@/lib/format';
+import { formatRelativeDay, parseLocalDate, plural } from '@/lib/format';
 import { isPositiveCount, parseCount } from '@/lib/numbers';
-import { gameFit, missingDetails, pickRandom, type PickerFilter } from '@/lib/picker';
+import { gameFit, missingDetails, neglectedFirst, pickRandom, type PickerFilter } from '@/lib/picker';
 
 /** A typed filter value: the number to filter by (null if blank or invalid), and whether it's invalid. */
 function filterValue(text: string): { value: number | null; invalid: boolean } {
@@ -27,11 +28,13 @@ export default function PickScreen() {
   const theme = useTheme();
   const allGames = useGamesWithOwners();
   const people = usePeople();
+  const playStats = usePlayStats();
   const [selected, setSelected] = useState<string[]>([]);
   const [onlyTheirGames, setOnlyTheirGames] = useState(true);
   const [playersText, setPlayersText] = useState('');
   const [minutesText, setMinutesText] = useState('');
   const [pickedId, setPickedId] = useState<string | null>(null);
+  const [neglected, setNeglected] = useState(false);
 
   // Drop anyone deleted since they were picked.
   const hereIds = selected.filter((id) => people.some((person) => person.id === id));
@@ -51,13 +54,24 @@ export default function PickScreen() {
     ownedByAnyOf: here.size > 0 && onlyTheirGames ? here : null,
   };
 
-  const fits: GameWithOwners[] = [];
-  const unknown: GameWithOwners[] = [];
+  let fits: GameWithOwners[] = [];
+  let unknown: GameWithOwners[] = [];
   for (const game of allGames) {
     const fit = gameFit(game, filter);
     if (fit === 'fits') fits.push(game);
     else if (fit === 'unknown') unknown.push(game);
   }
+  if (neglected) {
+    const lastPlayedOn = (id: string) => playStats.get(id)?.lastPlayedOn ?? null;
+    fits = neglectedFirst(fits, lastPlayedOn);
+    unknown = neglectedFirst(unknown, lastPlayedOn);
+  }
+
+  function lastPlayedText(gameId: string): string {
+    const stats = playStats.get(gameId);
+    return stats ? `Last played ${formatRelativeDay(parseLocalDate(stats.lastPlayedOn))}` : 'Never played';
+  }
+
   // Games known to fit first, then those that might; empty sections are left out.
   const sections = [
     { key: 'fits', data: fits },
@@ -134,6 +148,17 @@ export default function PickScreen() {
         {players.invalid || minutes.invalid ? 'Must be a whole number above zero.' : null}
       </ErrorText>
 
+      <View style={styles.switchRow}>
+        <ThemedText type="small" style={styles.switchLabel}>
+          Least recently played first
+        </ThemedText>
+        <Switch
+          value={neglected}
+          onValueChange={setNeglected}
+          accessibilityLabel="Show never played and least recently played games first"
+        />
+      </View>
+
       {countText.length > 0 && (
         <View style={styles.countRow}>
           <ThemedText type="small" themeColor="textSecondary" style={styles.countText}>
@@ -184,6 +209,9 @@ export default function PickScreen() {
             return (
               <View style={styles.item}>
                 <GameSummary game={item} here={here} />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {lastPlayedText(item.id)}
+                </ThemedText>
                 {missing.length > 0 && (
                   <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
                     {`No ${missing.join(' or ')} set`}
