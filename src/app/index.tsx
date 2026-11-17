@@ -1,13 +1,11 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { GameForm } from '@/components/games/game-form';
-import { GameRow } from '@/components/games/game-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { GameList } from '@/components/games/game-list';
+import { Screen } from '@/components/screen';
+import { Spacing } from '@/constants/theme';
 import { addGame, useGamesWithOwners } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -22,99 +20,58 @@ export default function HomeScreen() {
     setEditingId(null);
     setAdding(true);
   }
-  function startEditing(id: string) {
-    setAdding(false);
+  function changeEditing(id: string | null) {
+    if (id !== null) setAdding(false);
     setEditingId(id);
   }
 
+  const addButton = (
+    <Pressable
+      onPress={startAdding}
+      disabled={adding}
+      accessibilityRole="button"
+      accessibilityLabel="Add a game"
+      hitSlop={Spacing.two}
+      style={({ pressed }) => [
+        styles.addButton,
+        { backgroundColor: theme.text, opacity: adding ? 0.4 : pressed ? 0.7 : 1 },
+      ]}>
+      <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} size={20} tintColor={theme.background} />
+    </Pressable>
+  );
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <ThemedText type="subtitle">Games</ThemedText>
-          <Pressable
-            onPress={startAdding}
-            disabled={adding}
-            accessibilityRole="button"
-            accessibilityLabel="Add a game"
-            hitSlop={Spacing.two}
-            style={({ pressed }) => [
-              styles.addButton,
-              { backgroundColor: theme.text, opacity: adding ? 0.4 : pressed ? 0.7 : 1 },
-            ]}>
-            <SymbolView
-              name={{ ios: 'plus', android: 'add', web: 'add' }}
-              size={20}
-              tintColor={theme.background}
+    <Screen title="Games" action={addButton}>
+      <GameList
+        sections={allGames.length > 0 ? [{ key: 'all', data: allGames }] : []}
+        editingId={editingId}
+        onEditingChange={changeEditing}
+        header={
+          adding ? (
+            <GameForm
+              submitLabel="Add"
+              onSubmit={(game, ownerIds) => {
+                addGame(game, ownerIds);
+                setAdding(false);
+              }}
+              onCancel={() => setAdding(false)}
+              style={styles.addForm}
             />
-          </Pressable>
-        </View>
-        <FlatList
-          style={styles.list}
-          data={allGames}
-          keyExtractor={(item) => item.id}
-          extraData={editingId}
-          keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={
-            adding ? (
-              <GameForm
-                submitLabel="Add"
-                onSubmit={(game, ownerIds) => {
-                  addGame(game, ownerIds);
-                  setAdding(false);
-                }}
-                onCancel={() => setAdding(false)}
-                style={styles.addForm}
-              />
-            ) : undefined
-          }
-          renderItem={({ item }) => (
-            <GameRow
-              game={item}
-              editing={item.id === editingId}
-              onStartEdit={() => startEditing(item.id)}
-              onDone={() => setEditingId(null)}
-            />
-          )}
-          ListEmptyComponent={
-            adding ? undefined : (
-              <ThemedText themeColor="textSecondary">No games yet. Tap + to add one.</ThemedText>
-            )
-          }
-        />
-      </SafeAreaView>
-    </ThemedView>
+          ) : undefined
+        }
+        empty={adding ? undefined : 'No games yet. Tap + to add one.'}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  list: {
-    alignSelf: 'stretch',
   },
   addForm: {
     marginBottom: Spacing.two,

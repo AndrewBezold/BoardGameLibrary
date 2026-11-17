@@ -1,21 +1,22 @@
 import { useState } from 'react';
-import { SectionList, StyleSheet, Switch, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ErrorText } from '@/components/error-text';
+import { GameList } from '@/components/games/game-list';
 import { GameSummary } from '@/components/games/game-summary';
 import { PersonChips } from '@/components/person-chips';
+import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useGamesWithOwners, type GameWithOwners } from '@/db/games';
 import { usePeople } from '@/db/people';
 import { usePlayStats } from '@/db/plays';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRelativeDay, parseLocalDate, plural } from '@/lib/format';
+import { gameFit, leastRecentlyPlayedFirst, missingDetails, type GameFilter } from '@/lib/game-filter';
 import { isPositiveCount, parseCount } from '@/lib/numbers';
-import { gameFit, missingDetails, neglectedFirst, pickRandom, type PickerFilter } from '@/lib/picker';
+import { pickRandom } from '@/lib/random';
 
 /** A typed filter value: the number to filter by (null if blank or invalid), and whether it's invalid. */
 function filterValue(text: string): { value: number | null; invalid: boolean } {
@@ -48,7 +49,7 @@ export default function PickScreen() {
 
   const players = filterValue(playersText);
   const minutes = filterValue(minutesText);
-  const filter: PickerFilter = {
+  const filter: GameFilter = {
     players: players.value,
     maxMinutes: minutes.value,
     ownedByAnyOf: here.size > 0 && onlyTheirGames ? here : null,
@@ -63,8 +64,8 @@ export default function PickScreen() {
   }
   if (neglected) {
     const lastPlayedOn = (id: string) => playStats.get(id)?.lastPlayedOn ?? null;
-    fits = neglectedFirst(fits, lastPlayedOn);
-    unknown = neglectedFirst(unknown, lastPlayedOn);
+    fits = leastRecentlyPlayedFirst(fits, lastPlayedOn);
+    unknown = leastRecentlyPlayedFirst(unknown, lastPlayedOn);
   }
 
   function lastPlayedText(gameId: string): string {
@@ -171,76 +172,55 @@ export default function PickScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="subtitle">Pick a game</ThemedText>
-        {picked && (
-          <View style={[styles.pickedCard, { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="small" themeColor="textSecondary">
-              {"Tonight's pick"}
-            </ThemedText>
-            <GameSummary game={picked} here={here} />
-            <View style={styles.pickedActions}>
-              <Button label="Done" onPress={() => setPickedId(null)} />
-              {fits.length > 1 && <Button label="Pick again" variant="primary" onPress={pickOne} />}
-            </View>
+    <Screen title="Pick a game">
+      {picked && (
+        <View style={[styles.pickedCard, { backgroundColor: theme.backgroundElement }]}>
+          <ThemedText type="small" themeColor="textSecondary">
+            {"Tonight's pick"}
+          </ThemedText>
+          <GameSummary game={picked} here={here} />
+          <View style={styles.pickedActions}>
+            <Button label="Done" onPress={() => setPickedId(null)} />
+            {fits.length > 1 && <Button label="Pick again" variant="primary" onPress={pickOne} />}
           </View>
-        )}
-        <SectionList
-          style={styles.list}
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          stickySectionHeadersEnabled={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          ListHeaderComponent={header}
-          renderSectionHeader={({ section }) =>
-            section.key === 'unknown' ? (
-              <View style={styles.sectionHeader}>
-                <ThemedText type="smallBold">Unknown fit</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {"These might fit, but they're missing a detail needed to check."}
+        </View>
+      )}
+      <GameList
+        sections={sections}
+        header={header}
+        empty={empty}
+        here={here}
+        sectionTitle={(key) =>
+          key === 'unknown' ? (
+            <View style={styles.sectionHeader}>
+              <ThemedText type="smallBold">Unknown fit</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {"These might fit, but they're missing a detail needed to check."}
+              </ThemedText>
+            </View>
+          ) : null
+        }
+        extra={(game, key) => {
+          const missing = key === 'unknown' ? missingDetails(game, filter) : [];
+          return (
+            <>
+              <ThemedText type="small" themeColor="textSecondary">
+                {lastPlayedText(game.id)}
+              </ThemedText>
+              {missing.length > 0 && (
+                <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
+                  {`No ${missing.join(' or ')} set`}
                 </ThemedText>
-              </View>
-            ) : null
-          }
-          renderItem={({ item, section }) => {
-            const missing = section.key === 'unknown' ? missingDetails(item, filter) : [];
-            return (
-              <View style={styles.item}>
-                <GameSummary game={item} here={here} />
-                <ThemedText type="small" themeColor="textSecondary">
-                  {lastPlayedText(item.id)}
-                </ThemedText>
-                {missing.length > 0 && (
-                  <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
-                    {`No ${missing.join(' or ')} set`}
-                  </ThemedText>
-                )}
-              </View>
-            );
-          }}
-          ListEmptyComponent={<ThemedText themeColor="textSecondary">{empty}</ThemedText>}
-        />
-      </SafeAreaView>
-    </ThemedView>
+              )}
+            </>
+          );
+        }}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
   header: {
     gap: Spacing.three,
     marginBottom: Spacing.two,
@@ -275,12 +255,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: Spacing.two,
-  },
-  list: {
-    alignSelf: 'stretch',
-  },
-  item: {
-    paddingVertical: Spacing.two,
   },
   countRow: {
     flexDirection: 'row',

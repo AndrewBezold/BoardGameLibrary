@@ -1,15 +1,15 @@
 // Type-only import: erased at build time, so this module never loads the database.
 import type { EditableGame } from '@/db/games';
 
-type PickerGame = Pick<EditableGame, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'> & {
+type FilterableGame = Pick<EditableGame, 'minPlayers' | 'maxPlayers' | 'playTimeMinutes'> & {
   owners: readonly { id: string }[];
 };
 
-/** What the picker is asked for. Null means that filter isn't set. */
-export type PickerFilter = {
+/** What to filter games by. Null means that filter isn't set. */
+export type GameFilter = {
   players: number | null;
   maxMinutes: number | null;
-  /** Only games at least one of these people owns (tonight's people). */
+  /** Only games at least one of these people owns (e.g. tonight's people). */
   ownedByAnyOf: ReadonlySet<string> | null;
 };
 
@@ -20,7 +20,7 @@ export type PickerFilter = {
  */
 export type Fit = 'fits' | 'unknown' | 'no';
 
-export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }: PickerFilter): Fit {
+export function gameFit(game: FilterableGame, { players, maxMinutes, ownedByAnyOf }: GameFilter): Fit {
   if (ownedByAnyOf && !game.owners.some((owner) => ownedByAnyOf.has(owner.id))) return 'no';
 
   let unknown = false;
@@ -42,37 +42,10 @@ export function gameFit(game: PickerGame, { players, maxMinutes, ownedByAnyOf }:
 }
 
 /**
- * Never-played games first, then the longest since last played. Ties keep
- * their order (name). `lastPlayedOn` gives a game's `YYYY-MM-DD`, or null if never played.
- */
-export function neglectedFirst<T extends { id: string }>(
-  games: readonly T[],
-  lastPlayedOn: (id: string) => string | null
-): T[] {
-  const rank = (game: T) => lastPlayedOn(game.id) ?? '';
-  // '' sorts before any date, and YYYY-MM-DD strings sort by date.
-  return [...games].sort((a, b) => (rank(a) < rank(b) ? -1 : rank(a) > rank(b) ? 1 : 0));
-}
-
-/**
- * A random item, avoiding `previousId` when there's anything else to choose,
- * so "pick again" always gives a different game. Null if `items` is empty.
- */
-export function pickRandom<T extends { id: string }>(
-  items: readonly T[],
-  previousId: string | null = null,
-  random: () => number = Math.random
-): T | null {
-  const choices = items.length > 1 ? items.filter((item) => item.id !== previousId) : items;
-  if (choices.length === 0) return null;
-  return choices[Math.floor(random() * choices.length)];
-}
-
-/**
  * The details a game is missing for the filters that are set, e.g.
  * ["min players", "play time"]. Explains why a game's fit is `unknown`.
  */
-export function missingDetails(game: PickerGame, { players, maxMinutes }: PickerFilter): string[] {
+export function missingDetails(game: FilterableGame, { players, maxMinutes }: GameFilter): string[] {
   const missing: string[] = [];
   if (players !== null) {
     if (game.minPlayers === null) missing.push('min players');
@@ -80,4 +53,17 @@ export function missingDetails(game: PickerGame, { players, maxMinutes }: Picker
   }
   if (maxMinutes !== null && game.playTimeMinutes === null) missing.push('play time');
   return missing;
+}
+
+/**
+ * Never-played games first, then the longest since last played. Ties keep
+ * their order (name). `lastPlayedOn` gives a game's `YYYY-MM-DD`, or null if never played.
+ */
+export function leastRecentlyPlayedFirst<T extends { id: string }>(
+  games: readonly T[],
+  lastPlayedOn: (id: string) => string | null
+): T[] {
+  const rank = (game: T) => lastPlayedOn(game.id) ?? '';
+  // '' sorts before any date, and YYYY-MM-DD strings sort by date.
+  return [...games].sort((a, b) => (rank(a) < rank(b) ? -1 : rank(a) > rank(b) ? 1 : 0));
 }

@@ -6,8 +6,8 @@ export function meFirst<T extends { id: string }>(people: readonly T[], meId: st
 }
 
 /**
- * Owners in display order: people in `here` first (tonight's people in the
- * picker), then everyone else, with the device user first within each part.
+ * Owners in display order: people in `here` first (e.g. tonight's people on the
+ * Pick tab), then everyone else, with the device user first within each part.
  */
 export function ownersInOrder<T extends { id: string }>(
   owners: readonly T[],

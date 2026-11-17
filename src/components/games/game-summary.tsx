@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,12 +10,14 @@ import { ownersInOrder, personLabel } from '@/lib/people';
 
 type Props = {
   game: GameWithOwners;
-  /** Tonight's people (picker only). Their names come first and are bold. */
+  /** People to put first and bold, e.g. tonight's people on the Pick tab. */
   here?: ReadonlySet<string>;
+  /** Extra lines under the owners. */
+  children?: ReactNode;
 };
 
-/** A game's name, details and owners, read-only. Used in the catalog and the picker. */
-export function GameSummary({ game, here }: Props) {
+/** A game's name, details and owners, read-only. Used in game lists and the Pick tab. */
+export function GameSummary({ game, here, children }: Props) {
   const me = useCurrentUser();
   const owners = ownersInOrder(game.owners, me.id, here);
   const details = formatGameDetails(game);
@@ -42,6 +44,7 @@ export function GameSummary({ game, here }: Props) {
               </Fragment>
             ))}
       </ThemedText>
+      {children}
     </View>
   );
 }
