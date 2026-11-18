@@ -14,9 +14,10 @@ import { Spacing } from '@/constants/theme';
 import { useGamesWithOwners, type GameWithOwners } from '@/db/games';
 import { usePlayStats } from '@/db/plays';
 import { useTheme } from '@/hooks/use-theme';
-import { formatRelativeDay, parseLocalDate, plural } from '@/lib/format';
+import { plural } from '@/lib/format';
 import { gameFit, leastRecentlyPlayedFirst, missingDetails, type GameFilter } from '@/lib/game-filter';
 import { isPositiveCount, parseCount } from '@/lib/numbers';
+import { formatPlayStats } from '@/lib/plays';
 import { pickRandom } from '@/lib/random';
 
 /** A typed filter value: the number to filter by (null if blank or invalid), and whether it's invalid. */
@@ -66,11 +67,6 @@ export default function PickScreen() {
     const lastPlayedOn = (id: string) => playStats.get(id)?.lastPlayedOn ?? null;
     fits = leastRecentlyPlayedFirst(fits, lastPlayedOn);
     unknown = leastRecentlyPlayedFirst(unknown, lastPlayedOn);
-  }
-
-  function lastPlayedText(gameId: string): string {
-    const stats = playStats.get(gameId);
-    return stats ? `Last played ${formatRelativeDay(parseLocalDate(stats.lastPlayedOn))}` : 'Never played';
   }
 
   // Games known to fit first, then those that might; empty sections are left out.
@@ -183,7 +179,11 @@ export default function PickScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             {"Tonight's pick"}
           </ThemedText>
-          <GameSummary game={picked} here={here} />
+          <GameSummary game={picked} here={here}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatPlayStats(playStats.get(picked.id))}
+            </ThemedText>
+          </GameSummary>
           <View style={styles.pickedActions}>
             <Button label="Log play" onPress={() => openLogPlay(picked.id)} />
             <View style={styles.spacer} />
@@ -209,18 +209,11 @@ export default function PickScreen() {
         }
         extra={(game, key) => {
           const missing = key === 'unknown' ? missingDetails(game, filter) : [];
-          return (
-            <>
-              <ThemedText type="small" themeColor="textSecondary">
-                {lastPlayedText(game.id)}
-              </ThemedText>
-              {missing.length > 0 && (
-                <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
-                  {`No ${missing.join(' or ')} set`}
-                </ThemedText>
-              )}
-            </>
-          );
+          return missing.length > 0 ? (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
+              {`No ${missing.join(' or ')} set`}
+            </ThemedText>
+          ) : null;
         }}
       />
     </Screen>

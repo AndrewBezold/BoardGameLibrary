@@ -1,78 +1,41 @@
+import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { GameForm } from '@/components/games/game-form';
 import { GameSummary } from '@/components/games/game-summary';
-import { useLogPlay } from '@/components/plays/log-play';
-import { useUndo } from '@/components/undo-snackbar';
 import { Spacing } from '@/constants/theme';
-import { deleteGame, getGameOwnerIds, updateGame, type GameWithOwners } from '@/db/games';
+import type { GameWithOwners } from '@/db/games';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   game: GameWithOwners;
   /** People to put first and bold in the owner list. */
   here?: ReadonlySet<string>;
-  editing: boolean;
-  onStartEdit: () => void;
-  onDone: () => void;
   /** Extra lines under the owners. */
   children?: ReactNode;
 };
 
-/** A game in the list, with its details and owners. Tap (the pencil marks it) to edit it in place. */
-export function GameRow({ game, here, editing, onStartEdit, onDone, children }: Props) {
+/** A game in the list, with its details and owners. Tap to open its screen. */
+export function GameRow({ game, here, children }: Props) {
   const theme = useTheme();
-  if (!editing) {
-    return (
-      <Pressable
-        onPress={onStartEdit}
-        accessibilityRole="button"
-        accessibilityHint="Edit this game"
-        style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}>
-        <GameSummary game={game} here={here}>
-          {children}
-        </GameSummary>
-        <SymbolView
-          name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-          size={18}
-          tintColor={theme.textSecondary}
-          accessible={false}
-          importantForAccessibility="no"
-        />
-      </Pressable>
-    );
-  }
-  return <GameEditor game={game} onDone={onDone} />;
-}
-
-function GameEditor({ game, onDone }: { game: GameWithOwners; onDone: () => void }) {
-  const showUndo = useUndo();
-  const openLogPlay = useLogPlay();
-  // Read once when editing starts, not on every render.
-  const [ownerIds] = useState(() => getGameOwnerIds(game.id));
-
   return (
-    <GameForm
-      game={game}
-      initialOwnerIds={ownerIds}
-      submitLabel="Save"
-      onSubmit={(values, owners) => {
-        updateGame(game.id, values, owners);
-        onDone();
-      }}
-      onCancel={onDone}
-      // No confirmation: the snackbar offers Undo instead.
-      onDelete={() => {
-        const undo = deleteGame(game.id);
-        onDone();
-        showUndo(`Deleted ${game.name}`, undo);
-      }}
-      // The form stays open behind the sheet, so unsaved edits aren't lost.
-      onLogPlay={() => openLogPlay(game.id)}
-      style={styles.editor}
-    />
+    <Pressable
+      onPress={() => router.push({ pathname: '/game/[id]', params: { id: game.id } })}
+      accessibilityRole="button"
+      accessibilityHint="Shows this game's plays"
+      style={({ pressed }) => [styles.item, pressed && { opacity: 0.6 }]}>
+      <GameSummary game={game} here={here}>
+        {children}
+      </GameSummary>
+      <SymbolView
+        name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+        size={18}
+        tintColor={theme.textSecondary}
+        accessible={false}
+        importantForAccessibility="no"
+      />
+    </Pressable>
   );
 }
 
@@ -82,8 +45,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     paddingVertical: Spacing.two,
-  },
-  editor: {
-    marginVertical: Spacing.one,
   },
 });

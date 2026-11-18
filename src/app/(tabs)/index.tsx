@@ -12,22 +12,11 @@ import { useTheme } from '@/hooks/use-theme';
 export default function HomeScreen() {
   const theme = useTheme();
   const allGames = useGamesWithOwners();
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-
-  // Only one inline form open at a time.
-  function startAdding() {
-    setEditingId(null);
-    setAdding(true);
-  }
-  function changeEditing(id: string | null) {
-    if (id !== null) setAdding(false);
-    setEditingId(id);
-  }
 
   const addButton = (
     <Pressable
-      onPress={startAdding}
+      onPress={() => setAdding(true)}
       disabled={adding}
       accessibilityRole="button"
       accessibilityLabel="Add a game"
@@ -44,8 +33,6 @@ export default function HomeScreen() {
     <Screen title="Games" action={addButton}>
       <GameList
         sections={allGames.length > 0 ? [{ key: 'all', data: allGames }] : []}
-        editingId={editingId}
-        onEditingChange={changeEditing}
         header={
           adding ? (
             <GameForm

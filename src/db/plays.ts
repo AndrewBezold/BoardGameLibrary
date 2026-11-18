@@ -1,4 +1,5 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { useMemo } from 'react';
 
 import { db } from './client';
 import { UserError } from './errors';
@@ -30,7 +31,7 @@ export function usePlayStats(): ReadonlyMap<string, PlayStats> {
         .all(),
     [plays]
   );
-  return new Map(rows.map(({ gameId, ...stats }) => [gameId, stats]));
+  return useMemo(() => new Map(rows.map(({ gameId, ...stats }) => [gameId, stats])), [rows]);
 }
 
 export type NewPlay = {
@@ -87,4 +88,67 @@ export function logPlay(play: NewPlay): Undo {
       tx.update(playPlayers).set({ deletedAt: time }).where(eq(playPlayers.playId, playId)).run();
     });
   };
+}
+
+export type PlayPlayerSummary = {
+  id: string;
+  name: string;
+  isWinner: boolean;
+  /** The person has since been deleted. Still shown, so history stays whole. */
+  deleted: boolean;
+};
+
+export type PlaySummary = {
+  id: string;
+  /** Local `YYYY-MM-DD`. */
+  playedOn: string;
+  /** Winners first, then by name. */
+  players: PlayPlayerSummary[];
+};
+
+/** A game's plays, newest first (same day: most recently logged first). Live. */
+export function useGamePlays(gameId: string): PlaySummary[] {
+  const rows = useLiveRows(
+    () =>
+      db
+        .select({
+          playId: plays.id,
+          playedOn: plays.playedOn,
+          personId: people.id,
+          name: people.name,
+          isWinner: playPlayers.isWinner,
+          personDeletedAt: people.deletedAt,
+        })
+        .from(plays)
+        .innerJoin(playPlayers, and(eq(playPlayers.playId, plays.id), live(playPlayers)))
+        // Deleted people are kept: the play still happened.
+        .innerJoin(people, eq(people.id, playPlayers.personId))
+        .where(and(eq(plays.gameId, gameId), live(plays)))
+        .orderBy(
+          desc(plays.playedOn),
+          desc(plays.createdAt),
+          asc(plays.id),
+          desc(playPlayers.isWinner),
+          asc(people.name)
+        )
+        .all(),
+    [plays, playPlayers, people],
+    gameId
+  );
+
+  const result: PlaySummary[] = [];
+  for (const row of rows) {
+    let play = result.at(-1);
+    if (play?.id !== row.playId) {
+      play = { id: row.playId, playedOn: row.playedOn, players: [] };
+      result.push(play);
+    }
+    play.players.push({
+      id: row.personId,
+      name: row.name,
+      isWinner: row.isWinner,
+      deleted: row.personDeletedAt !== null,
+    });
+  }
+  return result;
 }

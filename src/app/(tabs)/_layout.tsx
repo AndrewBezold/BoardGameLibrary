@@ -3,7 +3,8 @@ import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 
-export default function AppTabs() {
+/** The app's tabs. A game's screen (../game/[id]) is pushed over them. */
+export default function TabsLayout() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 

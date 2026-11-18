@@ -1,9 +1,8 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 
-import AppTabs from '@/components/app-tabs';
 import { FirstRun } from '@/components/first-run';
 import { LogPlayProvider } from '@/components/plays/log-play';
 import { ThemedText } from '@/components/themed-text';
@@ -16,7 +15,7 @@ import { useDatabaseMigrations } from '@/db/migrate';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { success, error } = useDatabaseMigrations();
   const ready = success || error !== undefined;
@@ -43,7 +42,11 @@ export default function TabLayout() {
         <UndoProvider>
           <WhosHereProvider>
             <LogPlayProvider>
-              <AppTabs />
+              {/* Tabs at the root; a game's screen is pushed over them, hiding the tab bar. */}
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="game/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+              </Stack>
             </LogPlayProvider>
           </WhosHereProvider>
         </UndoProvider>
