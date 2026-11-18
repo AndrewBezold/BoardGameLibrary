@@ -12,12 +12,14 @@ import { useTheme } from '@/hooks/use-theme';
 type Props = {
   value: string[];
   onChange: (ids: string[]) => void;
+  /** People to show who aren't in the live list (see PersonChips). */
+  extra?: readonly { id: string; name: string }[];
   /** Hint shown while nobody is chosen, e.g. "Pick at least one owner." */
   emptyText?: string;
 };
 
 /** Chip list for choosing people (owners, players), with inline "add person". */
-export function PersonPicker({ value, onChange, emptyText }: Props) {
+export function PersonPicker({ value, onChange, extra, emptyText }: Props) {
   const theme = useTheme();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function PersonPicker({ value, onChange, emptyText }: Props) {
 
   return (
     <View style={styles.container}>
-      <PersonChips value={value} onChange={onChange}>
+      <PersonChips value={value} onChange={onChange} extra={extra}>
         {adding ? (
           <NameField
             initial=""

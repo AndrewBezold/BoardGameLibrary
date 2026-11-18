@@ -13,15 +13,18 @@ type Props = {
   onChange: (ids: string[]) => void;
   /** Show only these people, e.g. a play's players when choosing winners. Omit to show everyone. */
   only?: readonly string[];
+  /** People to show who aren't in the live list, e.g. deleted players already in a play being edited. */
+  extra?: readonly { id: string; name: string }[];
   /** Rendered after the last chip, e.g. an "add person" chip. */
   children?: ReactNode;
 };
 
 /** Everyone (or just `only`) as toggleable chips, me first. */
-export function PersonChips({ value, onChange, only, children }: Props) {
+export function PersonChips({ value, onChange, only, extra = [], children }: Props) {
   const theme = useTheme();
   const me = useCurrentUser();
-  const everyone = usePeople();
+  const live = usePeople();
+  const everyone = [...live, ...extra.filter((e) => !live.some((p) => p.id === e.id))];
   const people = meFirst(only ? everyone.filter((p) => only.includes(p.id)) : everyone, me.id);
 
   function toggle(id: string) {

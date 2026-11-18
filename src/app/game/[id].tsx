@@ -1,12 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Fragment, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { GameForm } from '@/components/games/game-form';
 import { GameSummary } from '@/components/games/game-summary';
-import { useLogPlay } from '@/components/plays/log-play';
+import { useEditPlay, useLogPlay } from '@/components/plays/log-play';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useUndo } from '@/components/undo-snackbar';
@@ -59,9 +59,14 @@ export default function GameScreen() {
           </View>
         </>
       )}
-      <ThemedText type="smallBold" style={styles.playsTitle}>
-        Plays
-      </ThemedText>
+      <View style={styles.playsTitle}>
+        <ThemedText type="smallBold">Plays</ThemedText>
+        {plays.length > 0 && (
+          <ThemedText type="small" themeColor="textSecondary">
+            Tap a play to fix or delete it.
+          </ThemedText>
+        )}
+      </View>
     </View>
   );
 
@@ -115,6 +120,7 @@ function GameEditor({ game, onDone }: { game: GameWithOwners; onDone: () => void
 /** A play's date, then its players: winners first, in bold with a trophy. */
 function PlayRow({ play }: { play: PlaySummary }) {
   const me = useCurrentUser();
+  const openEditPlay = useEditPlay();
   const day = formatDayLabel(parseLocalDate(play.playedOn));
   const summary = winnerSummary(play.players);
   // With no winners or everyone winning, the summary line says it; no marks needed.
@@ -123,9 +129,11 @@ function PlayRow({ play }: { play: PlaySummary }) {
   const winners = play.players.filter((p) => p.isWinner).map((p) => personLabel(p, me.id));
 
   return (
-    <View
-      style={styles.play}
-      accessible
+    <Pressable
+      onPress={() => openEditPlay(play.id)}
+      style={({ pressed }) => [styles.play, pressed && { opacity: 0.6 }]}
+      accessibilityRole="button"
+      accessibilityHint="Fix or delete this play"
       accessibilityLabel={`${day}. Played by ${names.join(', ')}. ${summary ?? `Won by ${winners.join(', ')}`}.`}>
       <ThemedText type="small" themeColor="textSecondary">
         {day}
@@ -151,7 +159,7 @@ function PlayRow({ play }: { play: PlaySummary }) {
           {summary}
         </ThemedText>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -179,6 +187,7 @@ const styles = StyleSheet.create({
   },
   playsTitle: {
     marginTop: Spacing.three,
+    gap: Spacing.half,
   },
   play: {
     gap: Spacing.half,

@@ -14,9 +14,9 @@ People get added as you go: while picking owners, type a new name and they're in
 
 On the Pick tab, enter how many of you are playing and how many minutes you've got, and it lists the games that fit and who owns them. Leave either one blank if it doesn't matter. Tap the people who are there and it fills in the player count and sticks to games one of them owns (switch that off to see everything), with their names first and in bold. Games missing a player count or play time it needs to check are listed after the rest under "Unknown fit", so they don't get forgotten. Can't decide? Tap Pick one and the app chooses one of the games that fit, and Pick again gives you a different one. You can also put the games nobody's played in ages at the top.
 
-When a game's over, log it. Tap Log play on the game the app picked, tap Log a play on a game's page, or tap Log a play on the Pick tab and search for the game. It starts with today's date and whoever you marked as there (or just you), so usually all that's left is tapping the winner and Save. Pick as many winners as you like: none for a co-op loss or a game you gave up on, everyone for a co-op win. Change the date if you're logging one from last week. You can't fix or delete a play yet, apart from the Undo button right after saving.
+When a game's over, log it. Tap Log play on the game the app picked, tap Log a play on a game's page, or tap Log a play on the Pick tab and search for the game. It starts with today's date and whoever you marked as there (or just you), so usually all that's left is tapping the winner and Save. Pick as many winners as you like: none for a co-op loss or a game you gave up on, everyone for a co-op win. Change the date if you're logging one from last week. Got something wrong? Open the game and tap the play to change any of it, or delete it. The app asks before deleting, and there's an Undo button afterwards too.
 
-Nothing is gone for good when you delete it. An Undo button shows up for a few seconds, and anything you missed is in Settings → Recently deleted.
+Nothing is gone for good when you delete it. An Undo button shows up for a few seconds, and anything you missed is in Settings → Recently deleted: games, people and plays.
 
 It won't let you add the same game or person twice, and it ignores capitals and extra spaces when checking.
 
@@ -30,7 +30,6 @@ These are planned for v1:
 
 - Looking up games on BoardGameGeek while adding them, and importing your BGG collection. This will be the only thing the app sends anywhere: your searches and BGG username, to BGG
 - Voting on games to play
-- Editing or deleting a play
 - Search and sort for the game list
 - A self-hosted sync backend, to enable voting and library sharing
 

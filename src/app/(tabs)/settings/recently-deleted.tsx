@@ -32,7 +32,7 @@ export default function RecentlyDeletedScreen() {
         ListHeaderComponent={<ErrorText style={styles.error}>{error}</ErrorText>}
         renderItem={({ item }) => <DeletedRow item={item} onRestore={() => handleRestore(item)} />}
         ListEmptyComponent={
-          <ThemedText themeColor="textSecondary">Nothing deleted. Deleted games and people show up here.</ThemedText>
+          <ThemedText themeColor="textSecondary">Nothing deleted. Deleted games, people and plays show up here.</ThemedText>
         }
       />
     </ThemedView>

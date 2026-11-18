@@ -4,6 +4,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } f
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { ConfirmButton } from '@/components/confirm-button';
 import { ErrorText } from '@/components/error-text';
 import { PersonChips } from '@/components/person-chips';
 import { PersonPicker } from '@/components/person-picker';
@@ -15,33 +16,50 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useCurrentUser } from '@/db/current-user';
 import { toUserMessage } from '@/db/errors';
 import { useGamesWithOwners } from '@/db/games';
-import { logPlay } from '@/db/plays';
+import { deletePlay, getPlay, logPlay, updatePlay, type PlayDetails } from '@/db/plays';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDayLabel, toLocalDate } from '@/lib/format';
+import { formatDayLabel, parseLocalDate, toLocalDate } from '@/lib/format';
 
 /** Opens the Log a play sheet, with the game filled in if given. */
 type OpenLogPlay = (gameId?: string) => void;
+/** Opens the same sheet to fix or delete a logged play. */
+type OpenEditPlay = (playId: string) => void;
 
-const LogPlayContext = createContext<OpenLogPlay | null>(null);
+const LogPlayContext = createContext<{ log: OpenLogPlay; edit: OpenEditPlay } | null>(null);
 
-export function useLogPlay(): OpenLogPlay {
-  const open = use(LogPlayContext);
-  if (!open) throw new Error('useLogPlay must be used inside LogPlayProvider');
-  return open;
+function usePlaySheet() {
+  const value = use(LogPlayContext);
+  if (!value) throw new Error('useLogPlay and useEditPlay must be used inside LogPlayProvider');
+  return value;
 }
 
-/** `key` gives every opening a fresh form. The sheet's content stays while it slides away. */
-type Request = { key: number; gameId: string | null; open: boolean };
+export function useLogPlay(): OpenLogPlay {
+  return usePlaySheet().log;
+}
+
+export function useEditPlay(): OpenEditPlay {
+  return usePlaySheet().edit;
+}
+
+/**
+ * `key` gives every opening a fresh form. The sheet's content stays while it
+ * slides away. `playId` is set when editing a play.
+ */
+type Request = { key: number; gameId: string | null; playId: string | null; open: boolean };
 
 let nextKey = 0;
 
-/** Hosts the one Log a play sheet, over whatever tab is showing. Must be inside UndoProvider. */
+/** Hosts the one play sheet (log or edit), over whatever screen is showing. Must be inside UndoProvider. */
 export function LogPlayProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<Request | null>(null);
   const close = () => setRequest((r) => (r ? { ...r, open: false } : r));
+  const [actions] = useState(() => ({
+    log: (gameId?: string) => setRequest({ key: nextKey++, gameId: gameId ?? null, playId: null, open: true }),
+    edit: (playId: string) => setRequest({ key: nextKey++, gameId: null, playId, open: true }),
+  }));
 
   return (
-    <LogPlayContext value={(gameId) => setRequest({ key: nextKey++, gameId: gameId ?? null, open: true })}>
+    <LogPlayContext value={actions}>
       {children}
       <Modal
         visible={request?.open ?? false}
@@ -50,14 +68,51 @@ export function LogPlayProvider({ children }: { children: ReactNode }) {
         onRequestClose={close}>
         {/* A modal is its own window on Android, so it needs its own safe area. */}
         <SafeAreaProvider>
-          {request && <LogPlaySheet key={request.key} initialGameId={request.gameId} onClose={close} />}
+          {request && (
+            <PlaySheet key={request.key} initialGameId={request.gameId} playId={request.playId} onClose={close} />
+          )}
         </SafeAreaProvider>
       </Modal>
     </LogPlayContext>
   );
 }
 
-function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null; onClose: () => void }) {
+type SheetProps = { initialGameId: string | null; playId: string | null; onClose: () => void };
+
+/** Reads the play being edited once, when the sheet opens. */
+function PlaySheet({ initialGameId, playId, onClose }: SheetProps) {
+  const [existing] = useState(() => (playId ? getPlay(playId) : null));
+
+  if (playId && !existing) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <ThemedText type="subtitle">Edit play</ThemedText>
+          <ThemedText themeColor="textSecondary">This play was deleted.</ThemedText>
+          <View style={styles.actions}>
+            <Button label="Close" onPress={onClose} />
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+  return (
+    <PlayForm
+      initialGameId={existing?.gameId ?? initialGameId}
+      existing={playId && existing ? { id: playId, ...existing } : null}
+      onClose={onClose}
+    />
+  );
+}
+
+type PlayFormProps = {
+  initialGameId: string | null;
+  /** The play being edited, or null when logging a new one. */
+  existing: (PlayDetails & { id: string }) | null;
+  onClose: () => void;
+};
+
+function PlayForm({ initialGameId, existing, onClose }: PlayFormProps) {
   const theme = useTheme();
   const me = useCurrentUser();
   const games = useGamesWithOwners();
@@ -67,11 +122,17 @@ function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null
   const [gameId, setGameId] = useState(initialGameId);
   const [choosingGame, setChoosingGame] = useState(initialGameId === null);
   const [search, setSearch] = useState('');
-  const [date, setDate] = useState(() => new Date());
+  const [date, setDate] = useState(() => (existing ? parseLocalDate(existing.playedOn) : new Date()));
   const [showCalendar, setShowCalendar] = useState(false);
-  const [playerIds, setPlayerIds] = useState(() => (whosHere.length > 0 ? whosHere : [me.id]));
-  const [winnerIds, setWinnerIds] = useState<string[]>([]);
+  const [playerIds, setPlayerIds] = useState<string[]>(() => {
+    if (existing) return [...existing.playerIds];
+    return whosHere.length > 0 ? whosHere : [me.id];
+  });
+  const [winnerIds, setWinnerIds] = useState<string[]>(() => (existing ? [...existing.winnerIds] : []));
   const [error, setError] = useState<string | null>(null);
+
+  // People deleted since the play was logged: still shown, so they can stay in it.
+  const deletedPlayers = existing?.players.filter((p) => p.deleted) ?? [];
 
   // Gone if it was deleted while the sheet was open.
   const game = games.find((g) => g.id === gameId) ?? null;
@@ -105,12 +166,29 @@ function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null
 
   function save() {
     if (!game) return;
+    const play = { gameId: game.id, playedOn: toLocalDate(date), playerIds, winnerIds: winners };
     try {
-      const undo = logPlay({ gameId: game.id, playedOn: toLocalDate(date), playerIds, winnerIds: winners });
-      onClose();
-      showUndo(`Logged ${game.name}`, undo);
+      if (existing) {
+        updatePlay(existing.id, play);
+        onClose();
+      } else {
+        const undo = logPlay(play);
+        onClose();
+        showUndo(`Logged ${game.name}`, undo);
+      }
     } catch (e) {
-      setError(toUserMessage(e, 'Could not log play'));
+      setError(toUserMessage(e, existing ? 'Could not save play' : 'Could not log play'));
+    }
+  }
+
+  function remove() {
+    if (!existing) return;
+    try {
+      const undo = deletePlay(existing.id);
+      onClose();
+      showUndo('Deleted play', undo);
+    } catch (e) {
+      setError(toUserMessage(e, 'Could not delete play'));
     }
   }
 
@@ -125,7 +203,7 @@ function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <ThemedText type="subtitle">Log a play</ThemedText>
+          <ThemedText type="subtitle">{existing ? 'Edit play' : 'Log a play'}</ThemedText>
         </View>
 
         <ScrollView
@@ -218,14 +296,21 @@ function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null
             <ThemedText type="small" themeColor="textSecondary">
               Players
             </ThemedText>
-            <PersonPicker value={playerIds} onChange={setPlayerIds} emptyText="Pick at least one player." />
+            <PersonPicker
+              value={playerIds}
+              onChange={setPlayerIds}
+              extra={deletedPlayers}
+              emptyText="Pick at least one player."
+            />
           </View>
 
           <View style={styles.section}>
             <ThemedText type="small" themeColor="textSecondary">
               Winners
             </ThemedText>
-            {playerIds.length > 0 && <PersonChips value={winners} onChange={setWinnerIds} only={playerIds} />}
+            {playerIds.length > 0 && (
+              <PersonChips value={winners} onChange={setWinnerIds} only={playerIds} extra={deletedPlayers} />
+            )}
             {winnersHint && (
               <ThemedText type="small" themeColor="textSecondary">
                 {winnersHint}
@@ -236,6 +321,17 @@ function LogPlaySheet({ initialGameId, onClose }: { initialGameId: string | null
           <ErrorText>{error}</ErrorText>
 
           <View style={styles.actions}>
+            {existing && (
+              <>
+                <ConfirmButton
+                  label="Delete"
+                  title="Delete this play?"
+                  message={`${game?.name ?? 'This game'}, ${formatDayLabel(parseLocalDate(existing.playedOn))}. It's removed from the history and play count.`}
+                  onConfirm={remove}
+                />
+                <View style={styles.grow} />
+              </>
+            )}
             <Button label="Cancel" onPress={onClose} />
             <Button label="Save" variant="primary" onPress={save} disabled={!canSave} />
           </View>
