@@ -3,7 +3,7 @@ import { StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'rea
 
 import { Button } from '@/components/button';
 import { ErrorText } from '@/components/error-text';
-import { OwnerPicker } from '@/components/games/owner-picker';
+import { PersonPicker } from '@/components/person-picker';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useCurrentUser } from '@/db/current-user';
@@ -34,6 +34,8 @@ type Props = {
   onCancel: () => void;
   /** Shows a Delete button when set. Thrown errors are shown in the form. */
   onDelete?: () => void;
+  /** Shows a Log play button when set. */
+  onLogPlay?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -45,6 +47,7 @@ export function GameForm({
   onSubmit,
   onCancel,
   onDelete,
+  onLogPlay,
   style,
 }: Props) {
   const theme = useTheme();
@@ -104,7 +107,7 @@ export function GameForm({
       <ThemedText type="small" themeColor="textSecondary">
         Owned by
       </ThemedText>
-      <OwnerPicker value={ownerIds} onChange={setOwnerIds} />
+      <PersonPicker value={ownerIds} onChange={setOwnerIds} emptyText="Pick at least one owner." />
 
       <View style={styles.detailsRow}>
         {DETAIL_FIELDS.map(({ key, label, a11yLabel }) => (
@@ -127,6 +130,13 @@ export function GameForm({
       </View>
 
       <ErrorText>{detailsProblem ?? error}</ErrorText>
+
+      {/* Its own row: there's no room beside Delete, Cancel and Save on a phone. */}
+      {onLogPlay && (
+        <View style={styles.actions}>
+          <Button label="Log play" onPress={onLogPlay} />
+        </View>
+      )}
 
       <View style={styles.actions}>
         {/* No confirmation: the caller offers Undo instead. */}

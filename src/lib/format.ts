@@ -27,6 +27,18 @@ export function formatRelativeDay(when: string | Date, today: Date = new Date())
   });
 }
 
+/** A date as a local calendar day, `YYYY-MM-DD` (as `play.playedOn` expects). */
+export function toLocalDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** "Today", "Yesterday", "Nov 3": formatRelativeDay for the start of a line. */
+export function formatDayLabel(when: Date, today: Date = new Date()): string {
+  const text = formatRelativeDay(when, today);
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

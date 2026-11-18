@@ -4,6 +4,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { GameForm } from '@/components/games/game-form';
 import { GameSummary } from '@/components/games/game-summary';
+import { useLogPlay } from '@/components/plays/log-play';
 import { useUndo } from '@/components/undo-snackbar';
 import { Spacing } from '@/constants/theme';
 import { deleteGame, getGameOwnerIds, updateGame, type GameWithOwners } from '@/db/games';
@@ -48,6 +49,7 @@ export function GameRow({ game, here, editing, onStartEdit, onDone, children }: 
 
 function GameEditor({ game, onDone }: { game: GameWithOwners; onDone: () => void }) {
   const showUndo = useUndo();
+  const openLogPlay = useLogPlay();
   // Read once when editing starts, not on every render.
   const [ownerIds] = useState(() => getGameOwnerIds(game.id));
 
@@ -67,6 +69,8 @@ function GameEditor({ game, onDone }: { game: GameWithOwners; onDone: () => void
         onDone();
         showUndo(`Deleted ${game.name}`, undo);
       }}
+      // The form stays open behind the sheet, so unsaved edits aren't lost.
+      onLogPlay={() => openLogPlay(game.id)}
       style={styles.editor}
     />
   );

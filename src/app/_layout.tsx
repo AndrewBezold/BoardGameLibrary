@@ -5,9 +5,11 @@ import { StyleSheet, useColorScheme } from 'react-native';
 
 import AppTabs from '@/components/app-tabs';
 import { FirstRun } from '@/components/first-run';
+import { LogPlayProvider } from '@/components/plays/log-play';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UndoProvider } from '@/components/undo-snackbar';
+import { WhosHereProvider } from '@/components/whos-here';
 import { Spacing } from '@/constants/theme';
 import { CurrentUserProvider } from '@/db/current-user';
 import { useDatabaseMigrations } from '@/db/migrate';
@@ -39,7 +41,11 @@ export default function TabLayout() {
     content = (
       <CurrentUserProvider firstRun={(save) => <FirstRun save={save} />}>
         <UndoProvider>
-          <AppTabs />
+          <WhosHereProvider>
+            <LogPlayProvider>
+              <AppTabs />
+            </LogPlayProvider>
+          </WhosHereProvider>
         </UndoProvider>
       </CurrentUserProvider>
     );

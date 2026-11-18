@@ -36,7 +36,8 @@
       "expo-build-properties",
       "expo-sqlite",
       "expo-status-bar",
-      "./plugins/with-release-no-internet"
+      "./plugins/with-release-no-internet",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

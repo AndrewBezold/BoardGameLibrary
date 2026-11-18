@@ -6,11 +6,12 @@ import { ErrorText } from '@/components/error-text';
 import { GameList } from '@/components/games/game-list';
 import { GameSummary } from '@/components/games/game-summary';
 import { PersonChips } from '@/components/person-chips';
+import { useLogPlay } from '@/components/plays/log-play';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { useWhosHere } from '@/components/whos-here';
 import { Spacing } from '@/constants/theme';
 import { useGamesWithOwners, type GameWithOwners } from '@/db/games';
-import { usePeople } from '@/db/people';
 import { usePlayStats } from '@/db/plays';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRelativeDay, parseLocalDate, plural } from '@/lib/format';
@@ -28,21 +29,20 @@ function filterValue(text: string): { value: number | null; invalid: boolean } {
 export default function PickScreen() {
   const theme = useTheme();
   const allGames = useGamesWithOwners();
-  const people = usePeople();
   const playStats = usePlayStats();
-  const [selected, setSelected] = useState<string[]>([]);
+  const openLogPlay = useLogPlay();
+  // Shared with Log a play, which starts with these people as players.
+  const [hereIds, setHereIds] = useWhosHere();
   const [onlyTheirGames, setOnlyTheirGames] = useState(true);
   const [playersText, setPlayersText] = useState('');
   const [minutesText, setMinutesText] = useState('');
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [neglected, setNeglected] = useState(false);
 
-  // Drop anyone deleted since they were picked.
-  const hereIds = selected.filter((id) => people.some((person) => person.id === id));
   const here = new Set(hereIds);
 
   function pickPeople(ids: string[]) {
-    setSelected(ids);
+    setHereIds(ids);
     // The player count follows the people picked; it can still be changed by hand.
     setPlayersText(ids.length > 0 ? String(ids.length) : '');
   }
@@ -124,6 +124,11 @@ export default function PickScreen() {
             />
           </View>
         )}
+        {allGames.length > 0 && (
+          <View style={styles.logRow}>
+            <Button label="Log a play" onPress={() => openLogPlay()} />
+          </View>
+        )}
       </View>
 
       <View style={styles.filters}>
@@ -180,6 +185,8 @@ export default function PickScreen() {
           </ThemedText>
           <GameSummary game={picked} here={here} />
           <View style={styles.pickedActions}>
+            <Button label="Log play" onPress={() => openLogPlay(picked.id)} />
+            <View style={styles.spacer} />
             <Button label="Done" onPress={() => setPickedId(null)} />
             {fits.length > 1 && <Button label="Pick again" variant="primary" onPress={pickOne} />}
           </View>
@@ -271,8 +278,13 @@ const styles = StyleSheet.create({
   },
   pickedActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     gap: Spacing.two,
+  },
+  spacer: {
+    flex: 1,
+  },
+  logRow: {
+    flexDirection: 'row',
   },
   sectionHeader: {
     gap: Spacing.half,

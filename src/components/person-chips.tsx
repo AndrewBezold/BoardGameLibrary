@@ -11,15 +11,18 @@ import { meFirst, personLabel } from '@/lib/people';
 type Props = {
   value: readonly string[];
   onChange: (ids: string[]) => void;
+  /** Show only these people, e.g. a play's players when choosing winners. Omit to show everyone. */
+  only?: readonly string[];
   /** Rendered after the last chip, e.g. an "add person" chip. */
   children?: ReactNode;
 };
 
-/** Everyone as toggleable chips, me first. */
-export function PersonChips({ value, onChange, children }: Props) {
+/** Everyone (or just `only`) as toggleable chips, me first. */
+export function PersonChips({ value, onChange, only, children }: Props) {
   const theme = useTheme();
   const me = useCurrentUser();
-  const people = meFirst(usePeople(), me.id);
+  const everyone = usePeople();
+  const people = meFirst(only ? everyone.filter((p) => only.includes(p.id)) : everyone, me.id);
 
   function toggle(id: string) {
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);

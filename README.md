@@ -10,7 +10,9 @@ You add a game, pick who owns it, and it goes on the list. If two people own Cat
 
 People get added as you go: while picking owners, type a new name and they're in. Everyone is also listed in Settings → People. Tap a name there to change it, add someone new, or delete someone. If they were the only owner of a game, that game goes too, and the app tells you how many before you confirm.
 
-On the Pick tab, enter how many of you are playing and how many minutes you've got, and it lists the games that fit and who owns them. Leave either one blank if it doesn't matter. Tap the people who are there and it fills in the player count and sticks to games one of them owns (switch that off to see everything), with their names first and in bold. Games missing a player count or play time it needs to check are listed after the rest under "Unknown fit", so they don't get forgotten. Can't decide? Tap Pick one and the app chooses one of the games that fit, and Pick again gives you a different one. Each game shows when it was last played, and you can put the ones nobody's played in ages at the top. You can't log plays yet, so until the play log arrives every game shows as never played.
+On the Pick tab, enter how many of you are playing and how many minutes you've got, and it lists the games that fit and who owns them. Leave either one blank if it doesn't matter. Tap the people who are there and it fills in the player count and sticks to games one of them owns (switch that off to see everything), with their names first and in bold. Games missing a player count or play time it needs to check are listed after the rest under "Unknown fit", so they don't get forgotten. Can't decide? Tap Pick one and the app chooses one of the games that fit, and Pick again gives you a different one. Each game shows when it was last played, and you can put the ones nobody's played in ages at the top.
+
+When a game's over, log it. Tap Log play on the game the app picked or on any game's edit form, or tap Log a play on the Pick tab and search for the game. It starts with today's date and whoever you marked as there (or just you), so usually all that's left is tapping the winner and Save. Pick as many winners as you like: none for a co-op loss or a game you gave up on, everyone for a co-op win. Change the date if you're logging one from last week. You can't look back through past plays or fix one yet, apart from the Undo button right after saving.
 
 Nothing is gone for good when you delete it. An Undo button shows up for a few seconds, and anything you missed is in Settings → Recently deleted.
 
@@ -26,7 +28,7 @@ These are planned for v1:
 
 - Looking up games on BoardGameGeek while adding them, and importing your BGG collection. This will be the only thing the app sends anywhere: your searches and BGG username, to BGG
 - Voting on games to play
-- A play log with date, players and winners, plus when each game was last played
+- Each game's play history and play count, and editing or deleting a play
 - Search and sort for the game list
 - A self-hosted sync backend, to enable voting and library sharing
 

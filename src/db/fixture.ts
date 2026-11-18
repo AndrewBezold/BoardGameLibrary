@@ -1,8 +1,7 @@
-import { db } from './client';
+import { toLocalDate } from '@/lib/format';
 import { addGame, deleteGame, type EditableGame } from './games';
-import { newId } from './ids';
 import { addPerson, deletePerson } from './people';
-import { playPlayers, plays } from './schema';
+import { logPlay } from './plays';
 
 type FixtureGame = Partial<Omit<EditableGame, 'name'>> & {
   name: string;
@@ -13,8 +12,7 @@ type FixtureGame = Partial<Omit<EditableGame, 'name'>> & {
 function localDate(daysAgo: number): string {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return toLocalDate(date);
 }
 
 /**
@@ -71,28 +69,18 @@ export function seedFixture(meId: string) {
   deleteGame(gameId('Monopoly'));
   deletePerson(morgan);
 
-  // No data functions for plays yet, so insert them directly.
   const fixturePlays = [
     { game: 'Catan', daysAgo: 3, players: [meId, sam, priya], winners: [sam] },
     { game: 'Pandemic', daysAgo: 10, players: [meId, sam, priya], winners: [] }, // co-op loss
     { game: 'Wingspan', daysAgo: 40, players: [meId, priya], winners: [meId, priya] }, // tie
     { game: 'Catan', daysAgo: 60, players: [meId, sam, jordan], winners: [meId] },
   ];
-  db.transaction((tx) => {
-    for (const play of fixturePlays) {
-      const playId = newId();
-      tx.insert(plays)
-        .values({ id: playId, gameId: gameId(play.game), playedOn: localDate(play.daysAgo) })
-        .run();
-      tx.insert(playPlayers)
-        .values(
-          play.players.map((personId) => ({
-            playId,
-            personId,
-            isWinner: play.winners.includes(personId),
-          }))
-        )
-        .run();
-    }
-  });
+  for (const play of fixturePlays) {
+    logPlay({
+      gameId: gameId(play.game),
+      playedOn: localDate(play.daysAgo),
+      playerIds: play.players,
+      winnerIds: play.winners,
+    });
+  }
 }
